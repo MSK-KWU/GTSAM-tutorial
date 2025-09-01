@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/minsukim010822/codes/gtsam_tutorial/gtsam_factor_graph.cpp
+iostream
+-
+gtsam/slam/PriorFactor.h
+-
+gtsam/slam/BetweenFactor.h
+-
+gtsam/nonlinear/NonlinearFactorGraph.h
+-
+gtsam/nonlinear/LevenbergMarquardtOptimizer.h
+-
+gtsam/nonlinear/Marginals.h
+-
+gtsam/geometry/Pose2.h
+-
+gtsam/nonlinear/Values.h
+-
+
