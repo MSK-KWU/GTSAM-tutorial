@@ -11,6 +11,28 @@
 using namespace std;
 using namespace gtsam;
 
+//inherit
+class UnaryFactor: public NoiseModelFactor1<Pose2>
+{
+double x_measure, y_measure; ///<X andY measurements
+
+public:
+  UnaryFactor(Keyj, double x, double y, const SharedNoiseModel&model):
+  NoiseModelFactor1<Pose2>(model, j), x_measure(x), y_measure(y){}
+
+  VectorevaluateError(const Pose2& q, boost::optional<Matrix&>H = boost::none) const
+  {
+    if (H) 
+    {
+      (*H)= Matrix_(2,3,   
+                         1.0, 0.0, 0.0,
+                         0.0, 1.0, 0.0
+                        );
+    }
+    
+    return Vector_(2, q.x() - x_measure_, q.y() - y_measure);
+  }
+};
 
 int main(int argc, char** argv)
 {
@@ -56,3 +78,4 @@ int main(int argc, char** argv)
 
   // return 0;
 }
+
