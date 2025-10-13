@@ -30,7 +30,7 @@ public:
             R.s(), R.c(), 0.0).finished();
     }
     
-    return Vector_(2, q.x() - x_measure, q.y() - y_measure);
+    return (Vector(2) << q.x() - x_measure, q.y() - y_measure).finished();
   }
 };
 
