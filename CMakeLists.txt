@@ -12,14 +12,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # GTSAM을 시스템에 설치한 경로를 CMake가 찾지 못하는 경우,
 # -DGTSAM_DIR=/path/to/gtsam/build/cmake 와 같이 경로를 직접 지정해주어야 할 수 있습니다.
 find_package(GTSAM REQUIRED)
-
+find_package(Boost REQUIRED)
 # Eigen 라이브러리를 포함합니다. GTSAM은 Eigen에 의존성이 있습니다.
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 # 실행 파일(executable)을 빌드하기 위한 소스 파일을 지정합니다.
 add_executable(gtsam_factor_graph gtsam_factor_graph.cpp)
-add_executable(gtsam_slam_tutorial gtsam_slam_tutorial.cpp)
+# add_executable(gtsam_slam_tutorial gtsam_slam_tutorial.cpp)
 
 # 빌드할 실행 파일에 GTSAM 라이브러리를 링크합니다.
 target_link_libraries(gtsam_factor_graph gtsam)
