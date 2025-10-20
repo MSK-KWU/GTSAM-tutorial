@@ -37,6 +37,7 @@ RUN mkdir build && cd build && \
     cd ../ && \
     rm -rf build
 
+RUN pip3 install numpy matplotlib
 # Set up a working directory for your tutorial projects
 WORKDIR /gtsam
 
