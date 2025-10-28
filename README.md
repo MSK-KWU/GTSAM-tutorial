@@ -4,6 +4,7 @@ git@github.com:MSK-KWU/GTSAM-tutorial.git
 
 
 * Docker build
+cd Dockerfile
 docker build -f Dockerfile.gtsam -t gtsam-tutorial .
 
 
