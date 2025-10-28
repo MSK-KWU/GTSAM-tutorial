@@ -23,8 +23,10 @@ RUN apt-get update && apt-get install -y \
 # Set a working directory for the GTSAM installation
 WORKDIR /usr/local/src/gtsam
 
+ARG CACHE_BUSTER=1
+
 # Clone the GTSAM repository from GitHub
-RUN git clone https://github.com/borglab/gtsam.git .
+RUN git clone --branch 4.2.0 --recurse-submodules https://github.com/borglab/gtsam.git .
 
 # Set environment variable for GTSAM library path
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
