@@ -1,122 +1,130 @@
 #!/usr/bin/env python3
 """
-Visualize GTSAM Structure from Motion (SfM) results in 3D
+GTSAM-tutorial/scripts/visualize_sfm.py
+
+Visualize 3D Structure from Motion (SfM) results from a text file.
+This script reads camera poses and 3D point coordinates and plots them in a 3D space.
 """
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+import sys
+import os
 
-def load_sfm_results(filename):
-    """Load SfM results from file"""
+def load_sfm_data(filename):
+    """
+    Loads SfM data from a file.
+    The file should be structured with 'CAMERAS' and 'POINTS' sections.
+    """
     cameras = {}
     points = {}
-    
-    with open(filename, 'r') as f:
-        section = None
-        for line in f:
-            line = line.strip()
-            if line == 'CAMERAS':
-                section = 'cameras'
-                continue
-            elif line == 'POINTS':
-                section = 'points'
-                continue
-            
-            if section == 'cameras' and line:
+    current_section = None
+
+    try:
+        with open(filename, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith('CAMERAS'):
+                    current_section = 'cameras'
+                    continue
+                elif line.startswith('POINTS'):
+                    current_section = 'points'
+                    continue
+
                 parts = line.split()
-                name = parts[0]
-                pos = np.array([float(parts[1]), float(parts[2]), float(parts[3])])
-                cameras[name] = pos
-            elif section == 'points' and line:
-                parts = line.split()
-                name = parts[0]
-                pos = np.array([float(parts[1]), float(parts[2]), float(parts[3])])
-                points[name] = pos
-    
+                if len(parts) < 4:
+                    continue
+
+                label = parts[0]
+                try:
+                    # Handle potential extra info in camera lines by taking first 3 floats
+                    coords = np.array([float(p) for p in parts[1:4]])
+                    if current_section == 'cameras':
+                        cameras[label] = coords
+                    elif current_section == 'points':
+                        points[label] = coords
+                except ValueError:
+                    print(f"Warning: Could not parse line: {line}")
+                    continue
+
+    except FileNotFoundError:
+        print(f"Error: The file '{filename}' was not found.")
+        print("Please run the C++ example first to generate the result file.")
+        sys.exit(1)
+        
     return cameras, points
 
-def plot_camera(ax, position, label, size=0.5):
-    """Plot a camera as a pyramid"""
-    # Camera center
-    ax.scatter(*position, c='blue', marker='o', s=100, label=label if label else None)
-    
-    # Camera coordinate frame
-    ax.quiver(position[0], position[1], position[2], 
-              size, 0, 0, color='r', arrow_length_ratio=0.3, linewidth=2)
-    ax.quiver(position[0], position[1], position[2], 
-              0, size, 0, color='g', arrow_length_ratio=0.3, linewidth=2)
-    ax.quiver(position[0], position[1], position[2], 
-              0, 0, size, color='b', arrow_length_ratio=0.3, linewidth=2)
-    
-    # Add label
-    ax.text(position[0], position[1], position[2], f'  {label}', 
-            fontsize=12, fontweight='bold', color='blue')
-
-def plot_point(ax, position, label):
-    """Plot a 3D point"""
-    ax.scatter(*position, c='red', marker='o', s=50)
-    ax.text(position[0], position[1], position[2], f'  {label}', 
-            fontsize=10, color='red')
-
-def main():
-    # Load results
-    try:
-        cameras, points = load_sfm_results('result/sfm_result.txt')
-    except FileNotFoundError:
-        print("Error: Could not find result/sfm_result.txt")
-        print("Please run ./sfm_example first to generate the data.")
-        return
-    
-    # Create 3D plot
-    fig = plt.figure(figsize=(14, 10))
+def plot_sfm(cameras, points, output_filename="sfm_visualization.png"):
+    """
+    Plots the cameras and 3D points in a 3D scatter plot.
+    """
+    fig = plt.figure(figsize=(12, 9))
     ax = fig.add_subplot(111, projection='3d')
-    
+
     # Plot cameras
-    for name, pos in cameras.items():
-        plot_camera(ax, pos, name, size=0.5)
-    
-    # Plot 3D points
-    for name, pos in points.items():
-        plot_point(ax, pos, name)
-    
-    # Draw lines from cameras to points (viewing rays)
-    for cam_name, cam_pos in cameras.items():
-        for point_name, point_pos in points.items():
-            ax.plot([cam_pos[0], point_pos[0]], 
-                   [cam_pos[1], point_pos[1]], 
-                   [cam_pos[2], point_pos[2]], 
-                   'gray', alpha=0.2, linewidth=0.5)
-    
-    # Set labels and title
-    ax.set_xlabel('X', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Y', fontsize=12, fontweight='bold')
-    ax.set_zlabel('Z', fontsize=12, fontweight='bold')
-    ax.set_title('Structure from Motion (SfM) Result\n3D Points and Camera Poses', 
-                 fontsize=14, fontweight='bold')
-    
-    # Set equal aspect ratio
-    max_range = 0
-    for pos in list(cameras.values()) + list(points.values()):
-        max_range = max(max_range, np.abs(pos).max())
-    
-    ax.set_xlim([-max_range*1.2, max_range*1.2])
-    ax.set_ylim([-max_range*1.2, max_range*1.2])
-    ax.set_zlim([-max_range*1.2, max_range*1.2])
-    
-    # Add legend
-    ax.legend(['Cameras', '3D Points'], fontsize=12)
-    
-    # Add grid
-    ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    
-    # Save figure
-    plt.savefig('sfm_result_3d.png', dpi=150, bbox_inches='tight')
-    print("Saved visualization to sfm_result_3d.png")
-    
-    # Show plot
+    if cameras:
+        cam_coords = np.array(list(cameras.values()))
+        ax.scatter(cam_coords[:, 0], cam_coords[:, 1], cam_coords[:, 2], c='blue', marker='^', s=100, label='Cameras')
+        for label, pos in cameras.items():
+            ax.text(pos[0], pos[1], pos[2], f' {label}', color='blue', fontsize=9)
+
+    # Plot points
+    if points:
+        point_coords = np.array(list(points.values()))
+        ax.scatter(point_coords[:, 0], point_coords[:, 1], point_coords[:, 2], c='red', marker='o', s=50, label='3D Points')
+        for label, pos in points.items():
+            ax.text(pos[0], pos[1], pos[2], f' {label}', color='red', fontsize=9)
+
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    ax.set_title('Structure from Motion (SfM) Visualization')
+    ax.legend()
+    ax.grid(True)
+
+    # Auto-scaling axes to keep aspect ratio equal
+    all_coords = []
+    if cameras: all_coords.extend(cameras.values())
+    if points: all_coords.extend(points.values())
+
+    if all_coords:
+        all_coords = np.array(all_coords)
+        max_range = np.array([all_coords[:, 0].max()-all_coords[:, 0].min(), 
+                              all_coords[:, 1].max()-all_coords[:, 1].min(), 
+                              all_coords[:, 2].max()-all_coords[:, 2].min()]).max() / 2.0
+
+        if max_range > 0:
+            mid_x = (all_coords[:, 0].max()+all_coords[:, 0].min()) * 0.5
+            mid_y = (all_coords[:, 1].max()+all_coords[:, 1].min()) * 0.5
+            mid_z = (all_coords[:, 2].max()+all_coords[:, 2].min()) * 0.5
+            ax.set_xlim(mid_x - max_range, mid_x + max_range)
+            ax.set_ylim(mid_y - max_range, mid_y + max_range)
+            ax.set_zlim(mid_z - max_range, mid_z + max_range)
+
+
+    plt.savefig(output_filename)
+    print(f"Visualization saved to '{output_filename}'")
     plt.show()
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    # The script is in GTSAM-tutorial/scripts, so the result file is at ../result/sfm_result.txt
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    
+    if len(sys.argv) > 1:
+        filepath = sys.argv[1]
+    else:
+        # Default path relative to the project root
+        filepath = os.path.join(script_dir, '..', 'result', 'sfm_result.txt')
+    
+    output_image_path = os.path.join(script_dir, '..', 'result', 'sfm_visualization.png')
+
+    cameras, points = load_sfm_data(filepath)
+    
+    if not cameras and not points:
+        print("No valid camera or point data found to visualize. Exiting.")
+        sys.exit(0)
+
+    plot_sfm(cameras, points, output_image_path)

@@ -11,8 +11,6 @@
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/inference/Symbol.h>
 
-// For custom factor
-#include <gtsam/nonlinear/NonlinearFactor.h>
 
 using namespace std;
 using namespace gtsam;
@@ -22,11 +20,8 @@ void savePosesToFile(const Values& values, const string& filename) {
   ofstream file(filename);
   for(const auto& key_value : values) {
     Key key = key_value.key;
-    // Check if the key is a Pose2
-    if (values.exists<Pose2>(key)) {
-        Pose2 pose = values.at<Pose2>(key);
-        file << Symbol(key).index() << " " << pose.x() << " " << pose.y() << " " << pose.theta() << endl;
-    }
+    Pose2 pose = values.at<Pose2>(key);
+    file << key << " " << pose.x() << " " << pose.y() << " " << pose.theta() << endl;
   }
   file.close();
   cout << "Saved poses to " << filename << endl;
@@ -35,21 +30,24 @@ void savePosesToFile(const Values& values, const string& filename) {
 //inherit
 class UnaryFactor: public NoiseModelFactor1<Pose2>
 {
-double x_measure_, y_measure_; ///<X andY measurements
+double x_measure, y_measure; ///<X andY measurements
 
 public:
   UnaryFactor(Key j, double x, double y, const SharedNoiseModel&model):
-  NoiseModelFactor1<Pose2>(model, j), x_measure_(x), y_measure_(y){}
+  NoiseModelFactor1<Pose2>(model, j), x_measure(x), y_measure(y){}
 
   // Override the correct evaluateError signature for newer GTSAM
-  Vector evaluateError(const Pose2& q, boost::optional<Matrix&> H) const override
+  Vector evaluateError(const Pose2& q, OptionalMatrixType H) const override
   {
-    if (H)
+    if (H) 
     {
-      (*H) = (Matrix(2, 3) << 1.0, 0.0, 0.0,
-                              0.0, 1.0, 0.0).finished();
+      const Rot2& R = q.rotation();
+      *H = (gtsam::Matrix(2, 3) <<
+            R.c(), -R.s(), 0.0,
+            R.s(), R.c(), 0.0).finished();
     }
-    return (Vector(2) << q.x() - x_measure_, q.y() - y_measure_).finished();
+    
+    return (Vector(2) << q.x() - x_measure, q.y() - y_measure).finished();
   }
 };
 
@@ -75,9 +73,9 @@ int main(int argc, char** argv)
     noiseModel::Diagonal::Sigmas(Vector2(0.1, 0.1)); // 10cm std on x,y
   
     
-  graph.add(boost::make_shared<UnaryFactor>(1, 0.0, 0.0, unaryNoise));
-  graph.add(boost::make_shared<UnaryFactor>(2, 2.0, 0.0, unaryNoise));
-  graph.add(boost::make_shared<UnaryFactor>(3, 4.0, 0.0, unaryNoise));
+  graph.add(std::make_shared<UnaryFactor>(1, 0.0, 0.0, unaryNoise));
+  graph.add(std::make_shared<UnaryFactor>(2, 2.0, 0.0, unaryNoise));
+  graph.add(std::make_shared<UnaryFactor>(3, 4.0, 0.0, unaryNoise));
 
   // Factor graph 출력
   graph.print("\nFactor Graph:\n");
@@ -218,3 +216,4 @@ int main(int argc, char** argv)
   
   return 0;
 }
+
