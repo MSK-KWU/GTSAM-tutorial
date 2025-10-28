@@ -19,12 +19,14 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 # 실행 파일(executable)을 빌드하기 위한 소스 파일을 지정합니다.
 add_executable(gtsam_factor_graph gtsam_factor_graph.cpp)
-# add_executable(gtsam_slam_tutorial gtsam_slam_tutorial.cpp)
+add_executable(sfm_example sfm_example.cpp)
 
 # 빌드할 실행 파일에 GTSAM 라이브러리를 링크합니다.
 target_link_libraries(gtsam_factor_graph gtsam)
+target_link_libraries(sfm_example gtsam)
 
 # C++ 헤더 파일이 있는 디렉토리를 포함 경로에 추가합니다.
 # gtsam_factor_graph.hpp 파일이 gtsam_factor_graph.cpp와 같은 디렉토리에 있으므로,
 # 현재 디렉토리를 포함 경로에 추가합니다.
 target_include_directories(gtsam_factor_graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(sfm_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

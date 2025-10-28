@@ -2,11 +2,14 @@
 #include <fstream>
 #include <gtsam/slam/PriorFactor.h>
 #include <gtsam/slam/BetweenFactor.h>
+#include <gtsam/slam/BearingRangeFactor.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/nonlinear/Marginals.h>
 #include <gtsam/geometry/Pose2.h>
+#include <gtsam/geometry/Point2.h>
 #include <gtsam/nonlinear/Values.h>
+#include <gtsam/inference/Symbol.h>
 
 
 using namespace std;
@@ -167,6 +170,49 @@ int main(int argc, char** argv)
   savePosesToFile(result2, "../result/poses_optimized.txt");
   
   cout << "\nRun 'python3 visualize_poses.py' to visualize the results!" << endl;
+
+    // ===========================================================================
+  // Section 5: Landmark-based SLAM
+  // ===========================================================================
+  cout << "\n\n========================================" << endl;
+  cout << "Section 5: Landmark-based SLAM" << endl;
+  cout << "========================================" << endl;
+
+  // new graph and initial estimate
+  NonlinearFactorGraph graph3;
+  Values initial3;
+
+  // 1. Prior on the first pose
+  noiseModel::Diagonal::shared_ptr priorNoise3 = 
+    noiseModel::Diagonal::Sigmas(Vector3(0.3, 0.3, 0.1));
+  graph3.add(PriorFactor<Pose2>(Symbol('x', 1), Pose2(0, 0, 0), priorNoise3));
+
+  // 2. Add odometry factors
+  noiseModel::Diagonal::shared_ptr odometryNoise3 = 
+    noiseModel::Diagonal::Sigmas(Vector3(0.2, 0.2, 0.1));
+  graph3.add(BetweenFactor<Pose2>(Symbol('x', 1), Symbol('x', 2), Pose2(2, 0, 0), odometryNoise3));
+  graph3.add(BetweenFactor<Pose2>(Symbol('x', 2), Symbol('x', 3), Pose2(2, 0, 0), odometryNoise3));
+
+  // 3. Add bearing/range measurements
+  noiseModel::Diagonal::shared_ptr brNoise = 
+    noiseModel::Diagonal::Sigmas(Vector2(0.1, 0.2)); // bearing, range
+  graph3.add(BearingRangeFactor<Pose2, Point2>(Symbol('x', 1), Symbol('l', 1), Rot2::fromDegrees(45), sqrt(8.0), brNoise));
+  graph3.add(BearingRangeFactor<Pose2, Point2>(Symbol('x', 2), Symbol('l', 1), Rot2::fromDegrees(90), 2.0, brNoise));
+  graph3.add(BearingRangeFactor<Pose2, Point2>(Symbol('x', 3), Symbol('l', 2), Rot2::fromDegrees(90), 2.0, brNoise));
+
+  // 4. Add initial estimates for all variables
+  initial3.insert(Symbol('x', 1), Pose2(0.5, 0.0, 0.2));
+  initial3.insert(Symbol('x', 2), Pose2(2.3, 0.1, -0.2));
+  initial3.insert(Symbol('x', 3), Pose2(4.1, 0.1, 0.1));
+  initial3.insert(Symbol('l', 1), Point2(1.8, 2.1));
+  initial3.insert(Symbol('l', 2), Point2(4.1, 1.8));
+
+  graph3.print("\nFactor Graph (Landmark SLAM):\n");
+  initial3.print("\nInitial Estimate (Landmark SLAM):\n");
+
+  // 5. Optimize
+  Values result3 = LevenbergMarquardtOptimizer(graph3, initial3).optimize();
+  result3.print("\nFinal Result (Landmark SLAM):\n");
   
   return 0;
 }
