@@ -48,11 +48,40 @@
 // to a consistent set of variable values. This requires us to specify an initial guess
 // for each variable, held in a Values container.
 #include <gtsam/nonlinear/Values.h>
+#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 
 #include <vector>
+#include <fstream>
 
 using namespace std;
 using namespace gtsam;
+
+// Helper function to save results to file
+void saveResults(const Values& values, const string& filename, size_t numPoses, size_t numPoints) {
+  ofstream file(filename);
+  if (!file.is_open()) {
+    cerr << "Error: Could not open file " << filename << endl;
+    return;
+  }
+
+  // Save camera poses
+  file << "CAMERAS" << endl;
+  for (size_t i = 0; i < numPoses; ++i) {
+    Pose3 pose = values.at<Pose3>(Symbol('x', i));
+    Point3 position = pose.translation();
+    file << "x" << i << " " << position.x() << " " << position.y() << " " << position.z() << endl;
+  }
+
+  // Save 3D points
+  file << "POINTS" << endl;
+  for (size_t j = 0; j < numPoints; ++j) {
+    Point3 point = values.at<Point3>(Symbol('l', j));
+    file << "l" << j << " " << point.x() << " " << point.y() << " " << point.z() << endl;
+  }
+
+  file.close();
+  cout << "Results saved to " << filename << endl;
+}
 
 /* ************************************************************************* */
 int main(int argc, char* argv[]) {
@@ -115,11 +144,17 @@ int main(int argc, char* argv[]) {
   }
   initialEstimate.print("Initial Estimates:\n");
 
+  // Save initial estimates
+  saveResults(initialEstimate, "../result/sfm_result_initial.txt", poses.size(), points.size());
+
   /* Optimize the graph and print results */
-  Values result = DoglegOptimizer(graph, initialEstimate).optimize();
+  Values result = LevenbergMarquardtOptimizer(graph, initialEstimate).optimize();
   result.print("Final results:\n");
   cout << "initial error = " << graph.error(initialEstimate) << endl;
   cout << "final error = " << graph.error(result) << endl;
+
+  // Save optimized results
+  saveResults(result, "../result/sfm_result_optimized.txt", poses.size(), points.size());
 
   return 0;
 }
