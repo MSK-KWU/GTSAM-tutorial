@@ -18,7 +18,7 @@ find_package(Boost REQUIRED)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # 실행 파일(executable)을 빌드하기 위한 소스 파일을 지정합니다.
-add_executable(gtsam_factor_graph ${SRC_DIR}/gtsam_factor_graph.cpp)
+add_executable(gtsam_factor_graph ${SRC_DIR}/gtsam_factor_graph_backup.cpp)
 add_executable(sfm_example ${SRC_DIR}/sfm_example.cpp)
 
 # 빌드할 실행 파일에 GTSAM 라이브러리를 링크합니다.
