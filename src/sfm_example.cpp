@@ -81,6 +81,7 @@ int main(int argc, char* argv[]) {
   // Simulated measurements from each camera pose, adding them to the factor
   // graph
   for (size_t i = 0; i < poses.size(); ++i) {
+    //Cal3_S2 : no distortion, simple pinhole camera
     PinholeCamera<Cal3_S2> camera(poses[i], *K);
     for (size_t j = 0; j < points.size(); ++j) {
       Point2 measurement = camera.project(points[j]);
